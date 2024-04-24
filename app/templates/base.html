@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <title>Document</title>
+</head>
+<body>
+    <style>
+        .active{
+            background-color: green;
+        }
+    </style>
+    <nav class="nav-wrapper indigo">
+        <div class="container">
+            <a href="" class="sidenav-trigger hide-on-large-only" data-target="mobile-links"><i class="material-icons">menu</i></a>
+            <ul class="center hide-on-med-and-down">
+                <li><a class="active" href="">page1</a></li>
+                <li><a href="">page2</a></li>
+                <li><a href="">page3</a></li>
+                <li><a href="">page4</a></li>
+               
+            </ul>
+           
+        </div>
+        <ul class="sidenav" id="mobile-links">
+            <li><a class="" href="">page1</a></li>
+                <li><a href="">page2</a></li>
+                <li><a href="">page3</a></li>
+                <li><a href="">page4</a></li>
+                
+        </ul>
+    </nav>
+    <div class="container">
+        {% block content %}
+        {% endblock content %}
+    </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>  
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        $(document).ready(function(){
+        $('.sidenav').sidenav()
+    })
+    </script>
+    {% block scripts %}
+    {% endblock scripts %}
+</body>
+</html>
