@@ -134,21 +134,64 @@ def PlotGraphs(graph1,graph2): #takes two grphs and creates png files of the plo
 
 #https://api.twelvedata.com/time_series?symbol=AAPL&interval=15min&start_date=2020-01-01&end_date=2023-01-01&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs
 
-def GrabNews(SearchTerm,APIKEY):
+def GrabNews(SearchTerm,APIKEY,company):
     datebefore=one_month_before()
     APIsearch="https://newsapi.org/v2/everything?q={}&from={}&sortBy=relevancy&apiKey={}&language=en".format(SearchTerm,datebefore,APIKEY)
     res=requests.get(APIsearch)
     open_page=res.json()
-    return open_page
+    article=open_page['articles']
+    values=[]
+    for i in article:
+        if i['url']!="https://removed.com":
+            tem=[]
+            tem.append(i["title"])
+            tem.append(i["url"])
+            data=i["publishedAt"]
+            data=data.split("T")
+            data2=data[0].split("-")
+            List=[]
+            List.append(int(data2[0]))
+            List.append(int(data2[1]))
+            List.append(int(data2[2]))
+            data3=data[1].split(":")
+            List.append(int(data3[0]))
+            List.append(int(data3[1]))
+            tem.append(List)
+            tem.append(company)
+            values.append(tem)
+    return values
+
+def UriAddToDB(values,company):
+   # values=[["Goodbye Apple Car, Hello Apple Home Robots","https://gizmodo.com/goodbye-apple-car-hello-apple-home-robots-1851386201",[2024,4,4,12,30]]]
+    query="SELECT * FROM Urls WHERE company = '{}'".format(company)
+    rows = query_db(query)
+    URlsindb=[]
+    Qrys=[]
+    for i in rows:
+        URlsindb.append(i['storyUrl'])
+    for i in values:
+        Url=i[1]
+        Url.replace("'","FfFf")
+        print(Url)
+        Qry = f"INSERT INTO Urls (storyUrl, company, headline,storyYear,storyMonth,storyDay,storyHour,storyminute) VALUES ('{i[1]}','{company}', '{i[0]}', {i[2][0]},{i[2][1]},{i[2][2]},{i[2][3]},{i[2][4]})"
+        Qrys.append(Qry)
+        CalQry = write_db(Qry)
+    return Qrys
+
+def grabAllStocks():
+    values=[["Goodbye Apple Car, Hello Apple Home Robots","https://gizmodo.com/goodbye-apple-car-hello-apple-home-robots-1851386201",[2024,4,4,12,30]]]
+    query="SELECT * FROM Companies"
+    rows = query_db(query)
+    return rows 
 @app.route("/")
 def index():
     """
     Main Page.
     """
-
-    
-    
-    return GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26')
+    values=GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
+    return UriAddToDB(values,"Apple")
+    #return grabAllStocks()
+    #return GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
     #return Sentimentclean('testing the basic premise of this function to see if it works the way i think it would hate hate joy')
     #return flask.render_template("index.html")
 
