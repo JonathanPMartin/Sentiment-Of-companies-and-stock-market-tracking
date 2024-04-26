@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 def CleaningHTML(Url,headline): #cleans the body removing all html ellements and removing as much infomation that is not relvent from the data as is possible with my skill level
     response = requests.get(Url)
     Html=response.text
-    tree = BeautifulSoup(Html,features="lxml")
+    tree = BeautifulSoup(Html)
     removedhtml=tree.get_text()
     Fillter=removedhtml.split(headline)
     if len(Fillter)<2:
@@ -51,7 +51,7 @@ def CleaningHTML(Url,headline): #cleans the body removing all html ellements and
         text=text+i
     #txt.replace("bananas", "apples")
     text=text.replace('FfFf','\n')
-    print(text)
+    #print(text)
     return text
 
 def Sentimentclean(text): #determines the sentiment of any given source taking its postive negative and overall as a return
@@ -170,12 +170,16 @@ def UriAddToDB(values,company):
     for i in rows:
         URlsindb.append(i['storyUrl'])
     for i in values:
-        Url=i[1]
-        Url.replace("'","FfFf")
-        print(Url)
-        Qry = f"INSERT INTO Urls (storyUrl, company, headline,storyYear,storyMonth,storyDay,storyHour,storyminute) VALUES ('{i[1]}','{company}', '{i[0]}', {i[2][0]},{i[2][1]},{i[2][2]},{i[2][3]},{i[2][4]})"
-        Qrys.append(Qry)
-        CalQry = write_db(Qry)
+        if i[1] in URlsindb:
+            useless=0
+        else:
+            Headline=i[0]
+            Headline=Headline.replace("'","FfFf")
+            Headline=Headline.replace('"',"fFfF")
+            #print(Headline)
+            Qry = f"INSERT INTO Urls (storyUrl, company, headline,storyYear,storyMonth,storyDay,storyHour,storyminute) VALUES ('{i[1]}','{company}', '{Headline}', {i[2][0]},{i[2][1]},{i[2][2]},{i[2][3]},{i[2][4]})"
+            Qrys.append(Qry)
+            CalQry = write_db(Qry)
     return Qrys
 
 def grabAllStocks():
@@ -183,13 +187,43 @@ def grabAllStocks():
     query="SELECT * FROM Companies"
     rows = query_db(query)
     return rows 
+def CleanBodyandSentimenttoDb():
+    Urls=[]
+    query="select * from Urls"
+    rows = query_db(query)
+    for i in rows:
+        Urls.append(i['storyUrl'])
+    query2="SELECT * FROM CleanedStories"
+    rows2 = query_db(query2)
+    URlsindb=[]
+    Qrys=[]
+    for i in rows2:
+        URlsindb.append(i['storyUrl'])
+    for i in Urls:
+        if i in URlsindb:
+            useless=0
+        else:
+            Qry="SELECT * FROM Urls Where storyUrl='{}'".format(i)
+            Result=query_db(Qry,one=True)
+            Headline=Result["headline"]
+            Headline=Headline.replace("FfFf","'")
+            Headline=Headline.replace('fFfF','"')
+            cleanedbody=CleaningHTML(i,Headline)
+            if cleanedbody !=False:
+                SentimetScore=Sentimentclean(cleanedbody)
+                cleanedbody=cleanedbody.replace("'","FfFf")
+                cleanedbody=cleanedbody.replace('"',"fFfF")
+                Qrys.append(SentimetScore)
+    return Qrys
 @app.route("/")
 def index():
     """
     Main Page.
     """
-    values=GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
-    return UriAddToDB(values,"Apple")
+    return CleanBodyandSentimenttoDb()
+    #values=GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
+    #return UriAddToDB(values,"Apple")
+
     #return grabAllStocks()
     #return GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
     #return Sentimentclean('testing the basic premise of this function to see if it works the way i think it would hate hate joy')
