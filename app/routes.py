@@ -8,7 +8,8 @@ from nltk.sentiment import SentimentIntensityAnalyzer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
-
+startdate="2024-03-26"
+Apikeys=["e3fff7fc440542c9923ebfd16005136f","2a026f3d832d4ba892d4a598b75157f8","16c656e972334d27bb0b94f37605f4f9","d5db1012f44841cd8aedd9bf0f53ef90","71d65b2753fc4b75b03e5414650cb0c1","54de7376d5474ca0a6e7ec9ecd81ca26"]
 
 def CleaningHTML(Url,headline): #cleans the body removing all html ellements and removing as much infomation that is not relvent from the data as is possible with my skill level
     response = requests.get(Url)
@@ -48,7 +49,7 @@ def CleaningHTML(Url,headline): #cleans the body removing all html ellements and
            PagLoc=i
     text=""
     for i in ForthFilter[PagLoc]:
-        text=text+i
+        text=text+" "+i
     #txt.replace("bananas", "apples")
     text=text.replace('FfFf','\n')
     #print(text)
@@ -206,28 +207,65 @@ def CleanBodyandSentimenttoDb():
             Qry="SELECT * FROM Urls Where storyUrl='{}'".format(i)
             Result=query_db(Qry,one=True)
             Headline=Result["headline"]
+            company=Result["company"]
             Headline=Headline.replace("FfFf","'")
             Headline=Headline.replace('fFfF','"')
             cleanedbody=CleaningHTML(i,Headline)
             if cleanedbody !=False:
-                SentimetScore=Sentimentclean(cleanedbody)
-                cleanedbody=cleanedbody.replace("'","FfFf")
-                cleanedbody=cleanedbody.replace('"',"fFfF")
-                Qrys.append(SentimetScore)
+                if company in cleanedbody: #checks if the data collected contains the company itself as the cleaning method is not perfect , if it doesnt does not add it to the db
+                    SentimetScore=Sentimentclean(cleanedbody)
+                    cleanedbody=cleanedbody.replace("'","FfFf")
+                    cleanedbody=cleanedbody.replace('"',"fFfF")
+                    Qrys.append(SentimetScore)
+                    Qry = f"INSERT INTO CleanedStories (storyUrl, Cleanedbody) VALUES ('{i}','{cleanedbody}')"
+                    CalQry = write_db(Qry)
+                    Qry = f"INSERT INTO storySentiment (Cleanedbody,pos,neg,overall) VALUES ('{cleanedbody}',{SentimetScore[0]},{SentimetScore[1]},{SentimetScore[2]})"
+                    CalQry = write_db(Qry)
     return Qrys
+def MassAddUrlDatatodb():
+    Qry="SELECT * FROM Companies"
+    companies=[]
+    Result=query_db(Qry)
+    for i in Result:
+        companies.append(i['company'])
+    for i in range(0,5):
+        tem=i*100
+        Apikey=Apikeys[i]
+        for j in range(0,100):
+            tem2=tem+j
+            company=companies[j]
+            values=GrabNews(company,Apikey,company)
+            UriAddToDB(values,company)
+    return companies
+def stokcswithdata():
+    compaines=[]
+    Qry = "SELECT * FROM Urls"
+    Result=query_db(Qry)
+    for i in Result:
+        if i["company"]in compaines:
+            useless=0
+        else:
+            compaines.append(i["company"])
+    for i in compaines:
+        Qry="SELECT * FROM Companies Where company='{}'".format(i)
+        QryResult=query_db(Qry,one=True)
+        stock=QryResult["stock"]
+    return compaines
 @app.route("/")
 def index():
     """
     Main Page.
     """
-    return CleanBodyandSentimenttoDb()
-    #values=GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
-    #return UriAddToDB(values,"Apple")
-
-    #return grabAllStocks()
-    #return GrabNews("Apple",'54de7376d5474ca0a6e7ec9ecd81ca26','Apple')
-    #return Sentimentclean('testing the basic premise of this function to see if it works the way i think it would hate hate joy')
+    return stokcswithdata()
     #return flask.render_template("index.html")
+
+@app.route("/collecturls")
+def colllecturls():
+    return MassAddUrlDatatodb()
+
+@app.route("/cleanstories")
+def cleanstories():
+    return CleanBodyandSentimenttoDb()
 
 @app.route("/initdb")
 def database_helper(): #creates the db on load
