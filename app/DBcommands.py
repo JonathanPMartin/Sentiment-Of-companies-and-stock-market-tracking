@@ -2,7 +2,7 @@ import os
 import flask
 from flask import g, make_response,render_template,request,redirect
 import sqlite3
-
+import requests
 
 DATABASE = 'database.db'
 UPLOAD_FOLDER = 'uploads'
@@ -18,6 +18,8 @@ app.config.update(
     UPLOAD_FOLDER=UPLOAD_FOLDER
 )
 
+
+requests.default_timeout = 1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
 def make_dicts(cursor, row):
     return dict((cursor.description[idx][0], value)
@@ -57,5 +59,11 @@ def init_db():
     with app.app_context():
         db = get_db()
         with app.open_resource('../schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+def shemainsert():
+    with app.app_context():
+        db = get_db()
+        with app.open_resource('../schema2.sql', mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()

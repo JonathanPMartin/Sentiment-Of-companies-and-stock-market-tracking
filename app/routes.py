@@ -2,7 +2,7 @@ from .DBcommands import *
 import requests
 import random
 from bs4 import BeautifulSoup
-import datetime as Datetime
+#import datetime
 from datetime import datetime, timedelta
 import nltk 
 from nltk.sentiment import SentimentIntensityAnalyzer
@@ -11,51 +11,55 @@ from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 startdate="2024-03-26"
-Apikeys=["e3fff7fc440542c9923ebfd16005136f","2a026f3d832d4ba892d4a598b75157f8","16c656e972334d27bb0b94f37605f4f9","d5db1012f44841cd8aedd9bf0f53ef90","71d65b2753fc4b75b03e5414650cb0c1","54de7376d5474ca0a6e7ec9ecd81ca26"]
+Apikeys=["0896662f0e03431aa59a190506001d9a","07e4ef2350934283b8519fe475e501d5","f0d9b0a2e4e347e8a55e6c013ee110c5","b97537e068a84b3c9bb61108472df551","14a82a26f5b6493ab0ce8462709bae76","e3fff7fc440542c9923ebfd16005136f","2a026f3d832d4ba892d4a598b75157f8","16c656e972334d27bb0b94f37605f4f9","d5db1012f44841cd8aedd9bf0f53ef90","71d65b2753fc4b75b03e5414650cb0c1","54de7376d5474ca0a6e7ec9ecd81ca26"]
 
 def CleaningHTML(Url,headline): #cleans the body removing all html ellements and removing as much infomation that is not relvent from the data as is possible with my skill level
-    response = requests.get(Url)
-    Html=response.text
-    tree = BeautifulSoup(Html)
-    removedhtml=tree.get_text()
-    Fillter=removedhtml.split(headline)
-    if len(Fillter)<2:
-        return False
-    
-    HighText=0
-    Loc=0
-    for i in range(0,len(Fillter)):
-        if len(Fillter[i])>HighText:
-            HighText=len(Fillter[i])
-            Loc=i
-    seccondFillter=Fillter[Loc].split('\n')
-    currentTextboxLength=0
-    largeTextBoxEnd=0
-    LargeTextBoxLength=0
-    EmptyStringsLength=0
-    ThirdFilter=""
-    for i in seccondFillter:
-        data=i
-        if i=="":
-            data="FfFf"
-        ThirdFilter=ThirdFilter+data
+    response = requests.get(Url, verify=False)
+    code=response.status_code
+    if code<300:
+        Html=response.text
+        tree = BeautifulSoup(Html)
+        removedhtml=tree.get_text()
+        Fillter=removedhtml.split(headline)
+        if len(Fillter)<2:
+            return False
         
-    
-    check='FfFfFfFfFfFf'
-    Largestpag=0
-    PagLoc=0
-    ForthFilter=ThirdFilter.split(check)
-    for i in range(0,len(ForthFilter)):
-       if len(ForthFilter[i])>Largestpag:
-           Largestpag=len(ForthFilter[i])
-           PagLoc=i
-    text=""
-    for i in ForthFilter[PagLoc]:
-        text=text+" "+i
-    #txt.replace("bananas", "apples")
-    text=text.replace('FfFf','\n')
-    #print(text)
-    return text
+        HighText=0
+        Loc=0
+        for i in range(0,len(Fillter)):
+            if len(Fillter[i])>HighText:
+                HighText=len(Fillter[i])
+                Loc=i
+        seccondFillter=Fillter[Loc].split('\n')
+        currentTextboxLength=0
+        largeTextBoxEnd=0
+        LargeTextBoxLength=0
+        EmptyStringsLength=0
+        ThirdFilter=""
+        for i in seccondFillter:
+            data=i
+            if i=="":
+                data="FfFf"
+            ThirdFilter=ThirdFilter+data
+            
+        
+        check='FfFfFfFfFfFf'
+        Largestpag=0
+        PagLoc=0
+        ForthFilter=ThirdFilter.split(check)
+        for i in range(0,len(ForthFilter)):
+            if len(ForthFilter[i])>Largestpag:
+                Largestpag=len(ForthFilter[i])
+                PagLoc=i
+        text=""
+        for i in ForthFilter[PagLoc]:
+            text=text+i
+        #txt.replace("bananas", "apples")
+        text=text.replace('FfFf','\n')
+        #print(text)
+        return text
+    else:
+        return "False"
 
 def Sentimentclean(text): #determines the sentiment of any given source taking its postive negative and overall as a return
     sia = SentimentIntensityAnalyzer()
@@ -66,7 +70,7 @@ def Sentimentclean(text): #determines the sentiment of any given source taking i
     return Return
 
 def one_month_before(): #determines the date one month before, must be used on the 28th of the month or before to avoid edge cases
-    current_datetime = Datetime.now()
+    current_datetime = datetime.now()
     current_month = current_datetime.month
     current_day = current_datetime.day
     current_year = current_datetime.year
@@ -135,7 +139,7 @@ def PlotGraphs(graph1,graph2):
     plt.savefig('plot1_image.png')
     plt.clf()
     for i in range(0,len(graph2['plots']['Xplots'])):
-        plt.plot(graph2['plots']['Xplots'][i], graph2['plots']['YPlots'][i], label=graph2['plots']['Label'][i], color=graph2['plots']["colours"][i])
+        plt.plot(graph2['plots']['Xplots'][i], graph2['plots']['YPlots'][i], label=graph2['plots']['Label'][i], color=graph2['plots']["colours"][i], linestyle='',marker='o',markersize=0.5)
     plt.title(graph2["Title"])
     plt.xlabel(graph2["Xlabel"])
     plt.ylabel(graph2["Ylabel"])
@@ -177,6 +181,9 @@ def GrabNews(SearchTerm,APIKEY,company):
             tem.append(company)
             values.append(tem)
     return values
+    
+    #print(APIsearch)
+    #return []
 
 def UriAddToDB(values,company):
    # values=[["Goodbye Apple Car, Hello Apple Home Robots","https://gizmodo.com/goodbye-apple-car-hello-apple-home-robots-1851386201",[2024,4,4,12,30]]]
@@ -204,12 +211,14 @@ def grabAllStocks():
     query="SELECT * FROM Companies"
     rows = query_db(query)
     return rows 
-def CleanBodyandSentimenttoDb():
+def CleanBodyandSentimenttoDb(company):
     Urls=[]
-    query="select * from Urls"
+    query="select * from Urls WHERE company='{}'".format(company)
     rows = query_db(query)
+    
     for i in rows:
         Urls.append(i['storyUrl'])
+    
     query2="SELECT * FROM CleanedStories"
     rows2 = query_db(query2)
     URlsindb=[]
@@ -224,8 +233,10 @@ def CleanBodyandSentimenttoDb():
             Result=query_db(Qry,one=True)
             Headline=Result["headline"]
             company=Result["company"]
+            
             Headline=Headline.replace("FfFf","'")
             Headline=Headline.replace('fFfF','"')
+            
             cleanedbody=CleaningHTML(i,Headline)
             if cleanedbody !=False:
                 if company in cleanedbody: #checks if the data collected contains the company itself as the cleaning method is not perfect , if it doesnt does not add it to the db
@@ -238,23 +249,25 @@ def CleanBodyandSentimenttoDb():
                     Qry = f"INSERT INTO storySentiment (Cleanedbody,pos,neg,overall) VALUES ('{cleanedbody}',{SentimetScore[0]},{SentimetScore[1]},{SentimetScore[2]})"
                     CalQry = write_db(Qry)
     return Qrys
-def MassAddUrlDatatodb():
+def MassAddUrlDatatodb(Val):
     Qry="SELECT * FROM Companies"
     companies=[]
     Result=query_db(Qry)
     for i in Result:
         companies.append(i['company'])
-    for i in range(0,5):
-        tem=i*100
-        Apikey=Apikeys[i]
-        for j in range(0,100):
-            tem2=tem+j
-            company=companies[j]
-            values=GrabNews(company,Apikey,company)
-            UriAddToDB(values,company)
+    
+    tem=Val*100
+    
+    Apikey=Apikeys[Val]
+    tem2=0
+    for j in range(0,100):
+        tem2=tem+j
+        company=companies[tem2]
+        values=GrabNews(company,Apikey,company)
+        UriAddToDB(values,company)
     return companies
-def stokcswithdata():
-    current_datetime = Datetime.now()
+def stokcswithdata(compaines):
+    current_datetime = datetime.now()
     current_month = current_datetime.month
     current_day = current_datetime.day
     current_year = current_datetime.year
@@ -266,14 +279,7 @@ def stokcswithdata():
     current_day=str(current_day)
     current_year=str(current_year)
     currentdate=current_year+"-"+current_month+"-"+current_day
-    compaines=[]
-    Qry = "SELECT * FROM Urls"
-    Result=query_db(Qry)
-    for i in Result:
-        if i["company"]in compaines:
-            useless=0
-        else:
-            compaines.append(i["company"])
+
     for i in compaines:
         Qry="SELECT * FROM Companies Where company='{}'".format(i)
         QryResult=query_db(Qry,one=True)
@@ -301,22 +307,132 @@ def stokcswithdata():
                     CalQry = write_db(qry)
         #https://api.twelvedata.com/time_series?symbol=AAPL&interval=15min&start_date=2020-01-01&end_date=2023-01-01&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs
     return compaines
+def grabSentimentbyco(company):
+    RetunObject=[]
+    qry=f"SELECT * FROM Urls where company='{company}'"
+    responce=query_db(qry) 
+    for i in responce:
+         headline=i['headline']
+         year=i['storyYear']
+         month=i['storyMonth']
+         day=i['storyDay']
+         hour=i['storyHour']
+         miniute=i['storyminute']
+         Url=i['storyUrl']
+         Qry=f"SELECT * FROM CleanedStories WHERE storyUrl='{Url}'"
+         TestQry=query_db(Qry)
+         score=0
+         TestCheck=False
+        
+         if len(TestQry)==1:
+            TestCheck=True
+            body=TestQry[0]['Cleanedbody']
+            ThirdQry=f"SELECT * FROM storySentiment WHERE Cleanedbody='{body}'"
+            ThirdResponce=query_db(ThirdQry, one=True)
+            score=ThirdResponce['overall']
+         if TestCheck:
+             tem={
+                 "company":company,
+                 "year":year,
+                 "month":month,
+                 "day":day,
+                 "hour":hour,
+                 "minute":miniute,
+                 "value":score
+             }
+             RetunObject.append(tem)
+  
+   
+    return RetunObject
+def getStockvaluebyco(company):
+    qry=f"SELECT * FROM Companies WHERE company='{company}'"
+    responce=query_db(qry, one=True)
+    stock=responce['stock']
+    seccondqry=f"SELECT * FROM stockvalue WHERE stock='{stock}'"
+    SeccondResponce=query_db(seccondqry)
+    Returnobject=[]
+    for i in SeccondResponce:
+        year=i['stockYear']
+        month=i['stockMonth']
+        day=i['stockDay']
+        hour=i['stockHour']
+        minute=i['stockminute']
+        value=i['stockvalue']
+        tem={
+            "company":company,
+            "year":year,
+            "month":month,
+            "day":day,
+            "hour":hour,
+            "minute":minute,
+            "value":value
+        }
+        Returnobject.append(tem)
+    return Returnobject
+
+def feedingTheGraphs(company):
+    stockinfo=getStockvaluebyco(company)
+    publicview=grabSentimentbyco(company)
+    StockYValues=[]
+    StockXValues=[]
+    PublicYVales=[]
+    PublicXVales=[]
+    for i in stockinfo:
+        TimeData = datetime(i["year"], i["month"],i["day"], i["hour"], i["minute"])
+        StockXValues.append(TimeData)
+        StockYValues.append(i["value"])
+    for i in publicview:
+        TimeData = datetime(i["year"], i["month"],i["day"], i["hour"], i["minute"])
+        PublicXVales.append(TimeData)
+        PublicYVales.append(i["value"])
+    
+    graph1={
+        "Xlabel":'Date',
+        "Title":company,
+        "Ylabel":"Stock Values",
+        "plots":{
+             "Xplots":[StockXValues],
+             "YPlots":[StockYValues],
+             "Label":[company],
+            "colours":['red','blue']
+        }
+    }
+    graph2={
+        "Xlabel":'Date',
+        "Title":company,
+        "Ylabel":"Public Perception",
+        "plots":{
+             "Xplots":[PublicXVales],
+             "YPlots":[PublicYVales],
+             "Label":[company],
+            "colours":['red','blue']
+        }
+    }
+    PlotGraphs(graph1,graph2)
+
 @app.route("/")
 def index():
     """
     Main Page.
     """
-    return stokcswithdata()
+    feedingTheGraphs("Walmart")
+    #return getStockvaluebyco("Walmart")
+    #return grabSentimentbyco("Walmart")
     #return stokcswithdata()
-    #return flask.render_template("index.html")
+    return flask.render_template("index.html")
 
-@app.route("/collecturls")
-def colllecturls():
-    return MassAddUrlDatatodb()
+@app.route("/stocks/<company>")
+def stocks(company):
+    List=[company]
+    return stokcswithdata(List)
+@app.route("/collecturls/<id>")
+def colllecturls(id):
+    id=int(id)
+    return MassAddUrlDatatodb(id)
 
-@app.route("/cleanstories")
-def cleanstories():
-    return CleanBodyandSentimenttoDb()
+@app.route("/cleanstories/<company>")
+def cleanstories(company):
+    return CleanBodyandSentimenttoDb(company)
 
 @app.route("/initdb")
 def database_helper(): #creates the db on load
