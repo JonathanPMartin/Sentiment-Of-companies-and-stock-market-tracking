@@ -10,6 +10,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import numpy as np
+from scipy.stats import linregress, pearsonr, ttest_ind
 startdate="2024-03-26"
 Apikeys=["0896662f0e03431aa59a190506001d9a","07e4ef2350934283b8519fe475e501d5","f0d9b0a2e4e347e8a55e6c013ee110c5","b97537e068a84b3c9bb61108472df551","14a82a26f5b6493ab0ce8462709bae76","e3fff7fc440542c9923ebfd16005136f","2a026f3d832d4ba892d4a598b75157f8","16c656e972334d27bb0b94f37605f4f9","d5db1012f44841cd8aedd9bf0f53ef90","71d65b2753fc4b75b03e5414650cb0c1","54de7376d5474ca0a6e7ec9ecd81ca26"]
 
@@ -93,38 +95,6 @@ def one_month_before(): #determines the date one month before, must be used on t
 
 
 
-"""
-Example use case of bellow function
-
-RandColour="#"
-hexcolours=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"]
-for i in range(0,6):
-    RandColour=RandColour+hexcolours[random.randint(0,15)]
-
-graph1={
-    "Xlabel":'Label',
-    "Title":"Graph1",
-    "Ylabel":"Label",
-    "plots":{
-        "Xplots":[[datetime(2024, 4, 26, 9, 30), datetime(2024, 4, 26, 10, 0), datetime(2024, 4, 26, 10, 30),
-             datetime(2024, 4, 26, 11, 0), datetime(2024, 4, 26, 11, 30), datetime(2024, 4, 26, 12, 0)]],
-        "YPlots":[[100, 110, 105, 115, 120, 125]],
-        "Label":['label1','label2'],
-        "colours":['red','blue']
-    }
-}
-graph2={
-    "Xlabel":'Label2',
-    "Ylabel":"Label2",
-    "Title":"Graph2",
-    "plots":{
-        "Xplots":[[0,1,2,3,4,5],[1,2,3,4,5,6]],
-        "YPlots":[[0,1,2,3,4,5],[1,2,3,4,5,6]],
-        "Label":['label1','label2'],
-        "colours":[RandColour,'blue']
-    }
-}
-"""
 def PlotGraphs(graph1,graph2):
     for i in range(0,len(graph1['plots']['Xplots'])):
         plt.plot(graph1['plots']['Xplots'][i], graph1['plots']['YPlots'][i], label=graph1['plots']['Label'][i], color=graph1['plots']["colours"][i])
@@ -284,7 +254,7 @@ def stokcswithdata(compaines):
         Qry="SELECT * FROM Companies Where company='{}'".format(i)
         QryResult=query_db(Qry,one=True)
         stock=QryResult["stock"]
-        url=f"https://api.twelvedata.com/time_series?symbol={stock}&interval=15min&start_date={startdate}&end_date={currentdate}&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs"
+        url=f"https://api.twelvedata.com/time_series?symbol={stock}&interval=1min&start_date={startdate}&end_date={currentdate}&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs"
         res=requests.get(url)
         open_page=res.json()
         if "values" in open_page.keys():
@@ -373,18 +343,48 @@ def getStockvaluebyco(company):
 def feedingTheGraphs(company):
     stockinfo=getStockvaluebyco(company)
     publicview=grabSentimentbyco(company)
+    StockValues={}
+    StoryValues={}
     StockYValues=[]
     StockXValues=[]
     PublicYVales=[]
     PublicXVales=[]
     for i in stockinfo:
+        month=i['month']
+        day=i['day']
+        hour=i["hour"]
+        minute=i['minute']
+        if month<10:
+            month="0"+str(month)
+        if day<10:
+            day="0"+str(day)
+        if hour<10:
+            hour="0"+str(hour)
+        if minute<10:
+            minute="0"+str(minute)
         TimeData = datetime(i["year"], i["month"],i["day"], i["hour"], i["minute"])
+        DateOfStock=f'{i["year"]}-{month}-{day} {hour}:{minute}'
         StockXValues.append(TimeData)
         StockYValues.append(i["value"])
+        StockValues[DateOfStock]=i["value"]
     for i in publicview:
+        month=i['month']
+        day=i['day']
+        hour=i["hour"]
+        minute=i['minute']
+        if month<10:
+            month="0"+str(month)
+        if day<10:
+            day="0"+str(day)
+        if hour<10:
+            hour="0"+str(hour)
+        if minute<10:
+            minute="0"+str(minute)
         TimeData = datetime(i["year"], i["month"],i["day"], i["hour"], i["minute"])
+        DateOfStory=f'{i["year"]}-{month}-{day} {hour}:{minute}'
         PublicXVales.append(TimeData)
         PublicYVales.append(i["value"])
+        StoryValues[DateOfStory]=i["value"]
     
     graph1={
         "Xlabel":'Date',
@@ -408,18 +408,76 @@ def feedingTheGraphs(company):
             "colours":['red','blue']
         }
     }
+    ReturnObject={
+        "stories":StoryValues,
+        "stocks":StockValues
+    }
     PlotGraphs(graph1,graph2)
+    return ReturnObject
+
+
+def CalcuateStats(List):
+    public_sentiment=np.array(List[0])
+    stock_value=np.array(List[1])
+    correlation_coefficient, _ = pearsonr(public_sentiment, stock_value)
+    slope, intercept, _, _, _ = linregress(public_sentiment, stock_value)
+    t_statistic, p_value = ttest_ind(public_sentiment, stock_value)
+    ReturnObject={
+        "correlation_coefficient":correlation_coefficient,
+        "slope":slope,
+        "intercept":intercept,
+        "t_statistic":t_statistic,
+        "p_value":p_value
+    }
+    return ReturnObject
+
+def compare(company):
+    GrabInfo=feedingTheGraphs(company)
+    allofStock=GrabInfo["stocks"]
+    allofStories=GrabInfo["stories"]
+    StockDates=list(allofStock.keys())
+    storyDates=list(allofStories.keys())
+    DatesWithBoth=[]
+    Datesandseconds=[]
+    DatesinSecconds=[]
+    for i in storyDates:
+        if i in StockDates:
+            tem = datetime.strptime(i, '%Y-%m-%d %H:%M')
+            epoch = datetime(1970, 1, 1)
+            time_difference = tem - epoch
+            time_difference=int(time_difference.total_seconds())
+            tem2=[time_difference,i]
+            Datesandseconds.append(tem2)
+            DatesinSecconds.append(time_difference)
+    DatesinSecconds.sort()
+    for i in DatesinSecconds:
+        for j in Datesandseconds:
+            if j[0]==i:
+                DatesWithBoth.append(j[1])
+    stockValues=[]
+    storyValues=[]
+    for i in DatesWithBoth:
+        stockValues.append(allofStock[i])
+        storyValues.append(allofStories[i])
+    ReturnObject=[storyValues,stockValues]
+    return ReturnObject
 
 @app.route("/")
 def index():
     """
     Main Page.
     """
-    feedingTheGraphs("Walmart")
+
+    #StockDates=feedingTheGraphs("Walmart")["stocks"].keys()
     #return getStockvaluebyco("Walmart")
     #return grabSentimentbyco("Walmart")
     #return stokcswithdata()
     return flask.render_template("index.html")
+@app.route("/stats/<company>")
+def stats(company):
+    values=compare(company)
+    Data=CalcuateStats(values)
+    return Data
 
 @app.route("/stocks/<company>")
 def stocks(company):
