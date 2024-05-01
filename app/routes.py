@@ -1,5 +1,5 @@
 from .DBcommands import *
-from .apikeys import *
+from .APIKey import *
 import requests
 import random
 from bs4 import BeautifulSoup
