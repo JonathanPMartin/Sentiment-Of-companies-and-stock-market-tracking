@@ -1,4 +1,5 @@
 from .DBcommands import *
+from .apikeys import *
 import requests
 import random
 from bs4 import BeautifulSoup
@@ -13,7 +14,7 @@ import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import linregress, pearsonr, ttest_ind
 startdate="2024-03-26"
-Apikeys=["0896662f0e03431aa59a190506001d9a","07e4ef2350934283b8519fe475e501d5","f0d9b0a2e4e347e8a55e6c013ee110c5","b97537e068a84b3c9bb61108472df551","14a82a26f5b6493ab0ce8462709bae76","e3fff7fc440542c9923ebfd16005136f","2a026f3d832d4ba892d4a598b75157f8","16c656e972334d27bb0b94f37605f4f9","d5db1012f44841cd8aedd9bf0f53ef90","71d65b2753fc4b75b03e5414650cb0c1","54de7376d5474ca0a6e7ec9ecd81ca26"]
+#Apikeys Holds a List of all Api keys for the news api i recomend 5-10
 
 def CleaningHTML(Url,headline): #cleans the body removing all html ellements and removing as much infomation that is not relvent from the data as is possible with my skill level
     response = requests.get(Url, verify=False)
@@ -123,7 +124,7 @@ def PlotGraphs(graph1,graph2):
     plt.clf()
 
 
-#https://api.twelvedata.com/time_series?symbol=AAPL&interval=15min&start_date=2020-01-01&end_date=2023-01-01&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs
+
 
 def GrabNews(SearchTerm,APIKEY,company):
     datebefore=one_month_before()
@@ -254,7 +255,7 @@ def stokcswithdata(compaines):
         Qry="SELECT * FROM Companies Where company='{}'".format(i)
         QryResult=query_db(Qry,one=True)
         stock=QryResult["stock"]
-        url=f"https://api.twelvedata.com/time_series?symbol={stock}&interval=1min&start_date={startdate}&end_date={currentdate}&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs"
+        url=f"https://api.twelvedata.com/time_series?symbol={stock}&interval=1min&start_date={startdate}&end_date={currentdate}&apikey={stockApiKey}&source=docs"
         res=requests.get(url)
         open_page=res.json()
         if "values" in open_page.keys():
@@ -275,7 +276,7 @@ def stokcswithdata(compaines):
                 if True: #requries table purge to work sucks but it is what it is
                     qry=f"INSERT INTO stockvalue(stock,stockYear,stockMonth,stockDay,stockHour,stockminute,stockvalue) Values('{stock}',{year},{month},{day},{hour},{Min},{value})"
                     CalQry = write_db(qry)
-        #https://api.twelvedata.com/time_series?symbol=AAPL&interval=15min&start_date=2020-01-01&end_date=2023-01-01&apikey=5eb91eed0cb149eaa54cb7acc41210ee&source=docs
+        
     return compaines
 def grabSentimentbyco(company):
     RetunObject=[]
@@ -418,6 +419,7 @@ def feedingTheGraphs(company):
 
 def CalcuateStats(List):
     public_sentiment=np.array(List[0])
+    samplesize=len(List[0])
     stock_value=np.array(List[1])
     correlation_coefficient, _ = pearsonr(public_sentiment, stock_value)
     slope, intercept, _, _, _ = linregress(public_sentiment, stock_value)
@@ -427,7 +429,8 @@ def CalcuateStats(List):
         "slope":slope,
         "intercept":intercept,
         "t_statistic":t_statistic,
-        "p_value":p_value
+        "p_value":p_value,
+        "sample_size":samplesize
     }
     return ReturnObject
 
